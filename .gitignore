@@ -4,4 +4,7 @@
 *.ptx
 *.cubin
 *.fatbin
+*.sqlite
 vector_add
+matrix_mul
+matrix_mul_exercise
