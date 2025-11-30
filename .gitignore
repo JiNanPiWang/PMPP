@@ -9,3 +9,4 @@ vector_add
 matrix_mul
 matrix_mul_exercise
 gpu_info
+matrix_mul_tiled
