@@ -1,0 +1,52 @@
+[Running] cd "/home/tensor/PMPP/04/" && nvcc gpu_info.cu -o gpu_info && "/home/tensor/PMPP/04/"gpu_info
+========================================
+Found 1 CUDA device(s)
+========================================
+
+╔════════════════════════════════════════╗
+║          Device 0: NVIDIA GeForce GTX 1650           
+╚════════════════════════════════════════╝
+
+【核心架构】
+  计算能力(Compute Capability):        7.5
+  SM 数量(Multiprocessor Count):       16
+  每个 SM 的 CUDA 核心数:               64 (估算)
+  总 CUDA 核心数(估算):                 1024
+
+【时钟频率】
+  GPU 时钟频率:                         1560.00 MHz
+  内存时钟频率:                         4001.00 MHz
+
+【内存信息】
+  全局内存(Global Memory):              4.00 GB
+  共享内存/SM(Shared Memory per SM):    64 KB
+  共享内存/Block(Shared Memory per Block): 48 KB
+  L2 缓存大小:                          1.00 MB
+  内存总线位宽:                         128-bit
+  内存带宽(峰值):                       128.03 GB/s
+
+【寄存器】
+  寄存器/SM(Registers per SM):          65536
+  寄存器/Block(Registers per Block):    65536
+
+【线程与 Warp】
+  Warp 大小:                            32
+  最大线程数/Block:                     1024
+  最大线程数/SM:                        1024
+  最大 Block 维度:                      (1024, 1024, 64)
+  最大 Grid 维度:                       (2147483647, 65535, 65535)
+
+【其他内存】
+  常量内存(Constant Memory):            64 KB
+  纹理对齐(Texture Alignment):          512 bytes
+
+【特性支持】
+  支持并发 Kernel 执行:                 是
+  支持 ECC 内存:                        否
+  支持统一寻址(Unified Addressing):     是
+  支持托管内存(Managed Memory):         是
+  支持并发内存拷贝:                     是
+  支持 Compute Preemption:              是
+
+【架构代号】
+  架构:                                 Turing
