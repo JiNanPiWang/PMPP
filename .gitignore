@@ -11,3 +11,4 @@ matrix_mul_exercise
 gpu_info
 matrix_mul_tiled
 test
+conv_basic
