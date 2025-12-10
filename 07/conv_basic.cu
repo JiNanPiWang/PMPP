@@ -4,10 +4,16 @@
 #define FILTER_RADIUS 2
 #define FILTER_WIDTH (2 * FILTER_RADIUS + 1)
 
+// 定义一个足够大的最大尺寸
+#define MAX_FILTER_SIZE 128 
+
+// 这里的 F_c 驻留在 Device 的常量内存区 (64KB max)
+__constant__ float F_c[MAX_FILTER_SIZE];
+
 // ==================================================
 // 🟢 你的任务：补全这个 Kernel
 // ==================================================
-__global__ void convolution_2D_basic_kernel(float *N, float *F, float *P,
+__global__ void convolution_2D_basic_kernel(float *N, float *P,
                                             int r, int width, int height)
 {
     // TODO 1: 计算当前线程负责的输出像素坐标 (outCol, outRow)
@@ -37,7 +43,7 @@ __global__ void convolution_2D_basic_kernel(float *N, float *F, float *P,
                 // F 的 1D 索引是: fRow * (2*r+1) + fCol
                 // N 的 1D 索引是: inRow * width + inCol
                 if (inRow >= 0 && inRow < height && inCol >= 0 && inCol < width)
-                    Pvalue += N[inRow * width + inCol] * F[fRow * (2*r+1) + fCol];
+                    Pvalue += N[inRow * width + inCol] * F_c[fRow * (2*r+1) + fCol];
             }
         }
 
@@ -95,14 +101,13 @@ int main()
         h_F[i] = 1.0f;
 
     // 3. 分配 Device 内存
-    float *d_N, *d_F, *d_P;
+    float *d_N, *d_P;
     cudaMalloc(&d_N, size);
-    cudaMalloc(&d_F, fSize);
     cudaMalloc(&d_P, size);
 
     // 4. 数据拷贝 Host -> Device
     cudaMemcpy(d_N, h_N, size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_F, h_F, fSize, cudaMemcpyHostToDevice);
+    cudaMemcpyToSymbol(F_c, h_F, fSize);
 
     // 5. 定义 Grid 和 Block
     dim3 dimBlock(16, 16);
@@ -112,7 +117,7 @@ int main()
            dimGrid.x, dimGrid.y, dimBlock.x, dimBlock.y);
 
     // 6. 启动 Kernel
-    convolution_2D_basic_kernel<<<dimGrid, dimBlock>>>(d_N, d_F, d_P, r, width, height);
+    convolution_2D_basic_kernel<<<dimGrid, dimBlock>>>(d_N, d_P, r, width, height);
 
     // 7. 拷贝回结果
     cudaMemcpy(h_P, d_P, size, cudaMemcpyDeviceToHost);
@@ -142,7 +147,6 @@ int main()
     free(h_P);
     free(h_P_ref);
     cudaFree(d_N);
-    cudaFree(d_F);
     cudaFree(d_P);
     return 0;
 }
