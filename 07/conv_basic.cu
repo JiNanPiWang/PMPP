@@ -11,8 +11,8 @@ __global__ void convolution_2D_basic_kernel(float *N, float *F, float *P,
                                             int r, int width, int height)
 {
     // TODO 1: 计算当前线程负责的输出像素坐标 (outCol, outRow)
-    int outCol = 0; // 修改这里
-    int outRow = 0; // 修改这里
+    int outCol = blockIdx.x * blockDim.x + threadIdx.x; // 修改这里
+    int outRow = blockIdx.y * blockDim.y + threadIdx.y; // 修改这里
 
     // 检查是否在有效图像范围内
     if (outCol < width && outRow < height)
@@ -27,8 +27,8 @@ __global__ void convolution_2D_basic_kernel(float *N, float *F, float *P,
 
                 // TODO 2: 计算对应的输入像素坐标 (inRow, inCol)
                 // 提示：输入坐标 = 输出坐标 - 半径 + 滤波器偏移
-                int inRow = 0; // 修改这里
-                int inCol = 0; // 修改这里
+                int inRow = outRow - r + fRow; // 修改这里`
+                int inCol = outCol - r + fCol; // 修改这里
 
                 // TODO 3: 边界检查 (Ghost Cells) 并累加
                 // 如果 inRow 和 inCol 在有效范围内 (0 到 height-1, 0 到 width-1)
@@ -36,6 +36,8 @@ __global__ void convolution_2D_basic_kernel(float *N, float *F, float *P,
                 // 注意：这里需要把 2D 坐标转换为 1D 索引
                 // F 的 1D 索引是: fRow * (2*r+1) + fCol
                 // N 的 1D 索引是: inRow * width + inCol
+                if (inRow >= 0 && inRow < height && inCol >= 0 && inCol < width)
+                    Pvalue += N[inRow * width + inCol] * F[fRow * (2*r+1) + fCol];
             }
         }
 
