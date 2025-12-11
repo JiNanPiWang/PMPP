@@ -1,20 +1,19 @@
 #include <stdio.h>
+#include <math.h> // 为了使用 abs()
 #include <cuda_runtime.h>
 
 // --- 预定义参数 ---
 #define FILTER_RADIUS 2
 #define IN_TILE_DIM 16
 #define OUT_TILE_DIM (IN_TILE_DIM - 2 * FILTER_RADIUS)
-
-// 滤波器宽度
 #define FILTER_WIDTH (2 * FILTER_RADIUS + 1)
 #define MAX_FILTER_SIZE (FILTER_WIDTH * FILTER_WIDTH)
 
-// 常量内存 (上一节的成果)
+// 常量内存
 __constant__ float F_c[MAX_FILTER_SIZE];
 
 // ==================================================
-// 🟢 你的战场：Tiled Convolution Kernel
+// 🟢 GPU Kernel (保持你刚才写的代码不变)
 // ==================================================
 __global__ void convolution_tiled_kernel(float *N, float *P, int width, int height)
 {
@@ -100,52 +99,131 @@ __global__ void convolution_tiled_kernel(float *N, float *P, int width, int heig
     }
 }
 
-// --- 辅助代码 (Host 端) ---
+// ==================================================
+// 🟡 新增：CPU 参考实现 (Golden Reference)
+// ==================================================
+// 这是一个标准的 3层循环卷积实现，用于生成标准答案
+void convolution_cpu(float *N, float *F, float *P, int width, int height)
+{
+    for (int outRow = 0; outRow < height; outRow++)
+    {
+        for (int outCol = 0; outCol < width; outCol++)
+        {
+            float Pvalue = 0.0f;
+
+            // 遍历滤波器
+            for (int fRow = 0; fRow < FILTER_WIDTH; fRow++)
+            {
+                for (int fCol = 0; fCol < FILTER_WIDTH; fCol++)
+                {
+                    // 计算对应的输入坐标
+                    int inRow = outRow - FILTER_RADIUS + fRow;
+                    int inCol = outCol - FILTER_RADIUS + fCol;
+
+                    // 边界检查 (和 GPU 逻辑一致，越界视为 0)
+                    if (inRow >= 0 && inRow < height && inCol >= 0 && inCol < width)
+                    {
+                        Pvalue += N[inRow * width + inCol] * F[fRow * FILTER_WIDTH + fCol];
+                    }
+                }
+            }
+            P[outRow * width + outCol] = Pvalue;
+        }
+    }
+}
+
+// ==================================================
+// 🔵 Main 函数
+// ==================================================
 int main()
 {
-    int width = 64;
-    int height = 64;
+    // 为了让测试更有意义，我们可以稍微加大一点尺寸
+    // 比如不是 64x64，而是非对齐的大小，比如 70x70，测试边界情况
+    int width = 1024;
+    int height = 1024;
+
     int size = width * height * sizeof(float);
     int fSize = MAX_FILTER_SIZE * sizeof(float);
 
+    printf("Image Size: %d x %d\n", width, height);
+
+    // 1. Host 内存分配
     float *h_N = (float *)malloc(size);
     float *h_F = (float *)malloc(fSize);
-    float *h_P = (float *)malloc(size);
-    // 初始化
-    for (int i = 0; i < width * height; i++)
-        h_N[i] = 1.0f;
-    for (int i = 0; i < MAX_FILTER_SIZE; i++)
-        h_F[i] = 1.0f;
+    float *h_P_gpu = (float *)malloc(size); // 存放 GPU 结果
+    float *h_P_cpu = (float *)malloc(size); // 存放 CPU 结果
 
+    // 2. 初始化数据
+    // 让输入数据有一些随机性，而不仅是全1，这样能测出索引错误
+    for (int i = 0; i < width * height; i++)
+        h_N[i] = (float)(i % 10);
+    for (int i = 0; i < MAX_FILTER_SIZE; i++)
+        h_F[i] = 1.0f; // 简单起见 Filter 还是全1
+
+    // 3. Device 内存分配
     float *d_N, *d_P;
     cudaMalloc(&d_N, size);
     cudaMalloc(&d_P, size);
+
+    // 4. 数据拷贝
     cudaMemcpy(d_N, h_N, size, cudaMemcpyHostToDevice);
     cudaMemcpyToSymbol(F_c, h_F, fSize);
 
-    // --- 关键点：Grid 的计算发生了变化 ---
-    // 因为每个 Block 产出的有效像素变少了 (只有中间那块)
-    // 所以我们需要更多的 Block 来覆盖整个图像
-    // 启动block的大小和IN_TILE_DIM一致，block的数量以及步进的长度  和OUT_TILE_DIM一致
+    // 5. 启动 Kernel
     dim3 dimBlock(IN_TILE_DIM, IN_TILE_DIM);
     dim3 dimGrid((width + OUT_TILE_DIM - 1) / OUT_TILE_DIM,
                  (height + OUT_TILE_DIM - 1) / OUT_TILE_DIM);
 
-    printf("Block Dim: %d (Input Tile Size)\n", IN_TILE_DIM);
-    printf("Output Tile Dim: %d\n", OUT_TILE_DIM);
-    printf("Grid Size: %d x %d\n", dimGrid.x, dimGrid.y);
-
+    printf("Grid: %d x %d, Block: %d x %d\n", dimGrid.x, dimGrid.y, dimBlock.x, dimBlock.y);
     convolution_tiled_kernel<<<dimGrid, dimBlock>>>(d_N, d_P, width, height);
 
-    cudaMemcpy(h_P, d_P, size, cudaMemcpyDeviceToHost);
+    // 6. 拷贝 GPU 结果回 Host
+    cudaMemcpy(h_P_gpu, d_P, size, cudaMemcpyDeviceToHost);
 
-    // 简单验证: 中心点应该是 25.0
-    printf("Center Check: %f (Expected 25.0)\n", h_P[32 * 64 + 32]);
+    // 7. 运行 CPU 参考版本 (这步会比较慢，是正常的)
+    printf("Running CPU verification...\n");
+    convolution_cpu(h_N, h_F, h_P_cpu, width, height);
 
+    // 8. 🔍 全量对比验证
+    bool passed = true;
+    int error_count = 0;
+    // 允许一点点浮点误差
+    float epsilon = 1e-4;
+
+    for (int i = 0; i < width * height; i++)
+    {
+        float diff = fabs(h_P_gpu[i] - h_P_cpu[i]);
+        if (diff > epsilon)
+        {
+            passed = false;
+            error_count++;
+            // 只打印前 10 个错误，避免刷屏
+            if (error_count <= 10)
+            {
+                int y = i / width;
+                int x = i % width;
+                printf("❌ Error at (%d, %d): GPU=%.4f, CPU=%.4f, Diff=%.4f\n",
+                       x, y, h_P_gpu[i], h_P_cpu[i], diff);
+            }
+        }
+    }
+
+    if (passed)
+    {
+        printf("✅ Test Passed! All pixels match CPU result.\n");
+    }
+    else
+    {
+        printf("❌ Test Failed with %d errors.\n", error_count);
+    }
+
+    // 清理
     free(h_N);
     free(h_F);
-    free(h_P);
+    free(h_P_gpu);
+    free(h_P_cpu);
     cudaFree(d_N);
     cudaFree(d_P);
+
     return 0;
 }
