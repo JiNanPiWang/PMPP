@@ -5,7 +5,7 @@
 #define FILTER_WIDTH (2 * FILTER_RADIUS + 1)
 
 // 定义一个足够大的最大尺寸
-#define MAX_FILTER_SIZE 128 
+#define MAX_FILTER_SIZE 128
 
 // 这里的 F_c 驻留在 Device 的常量内存区 (64KB max)
 __constant__ float F_c[MAX_FILTER_SIZE];
@@ -43,7 +43,7 @@ __global__ void convolution_2D_basic_kernel(float *N, float *P,
                 // F 的 1D 索引是: fRow * (2*r+1) + fCol
                 // N 的 1D 索引是: inRow * width + inCol
                 if (inRow >= 0 && inRow < height && inCol >= 0 && inCol < width)
-                    Pvalue += N[inRow * width + inCol] * F_c[fRow * (2*r+1) + fCol];
+                    Pvalue += N[inRow * width + inCol] * F_c[fRow * (2 * r + 1) + fCol];
             }
         }
 

@@ -12,3 +12,4 @@ gpu_info
 matrix_mul_tiled
 test
 conv_basic
+conv_tiled
