@@ -42,6 +42,8 @@ __global__ void convolution_cached_tiled_kernel(float *N, float *P, int width, i
     // ==================================================
     if (outCol < width && outRow < height)
         N_s[ty][tx] = N[outRow * width + outCol];
+    else
+        N_s[ty][tx] = 0;
 
     // 线程同步：确保大家都搬完了
     __syncthreads();
