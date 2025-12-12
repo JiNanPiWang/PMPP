@@ -13,3 +13,4 @@ matrix_mul_tiled
 test
 conv_basic
 conv_tiled
+conv_l2_cache

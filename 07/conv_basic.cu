@@ -82,8 +82,8 @@ void convolution_cpu(float *N, float *F, float *P, int r, int width, int height)
 
 int main()
 {
-    int width = 64;  // 图像宽
-    int height = 64; // 图像高
+    int width = 1024;  // 图像宽
+    int height = 1024; // 图像高
     int r = FILTER_RADIUS;
     int size = width * height * sizeof(float);
     int fSize = FILTER_WIDTH * FILTER_WIDTH * sizeof(float);
