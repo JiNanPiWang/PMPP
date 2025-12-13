@@ -30,10 +30,14 @@ __global__ void simpleSumReduction(float *input, float *output)
     // ----------- 你的代码开始 -----------
 
     // [TODO 1]: 编写 for 循环结构
+    // 这里是小于等于，因为i = 2 * threadIdx.x
+    for (int stride = 1; stride <= blockDim.x; stride *= 2)
     {
         // [TODO 2]: 编写 if 判断和加法逻辑 (注意：这里是发散的源头)
-
+        if (threadIdx.x % stride == 0)
+            input[i] += input[i + stride];
         // [TODO 3]: 线程同步栅栏
+        __syncthreads();
     }
 
     // ----------- 你的代码结束 -----------
