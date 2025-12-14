@@ -28,8 +28,18 @@ __global__ void multiBlockReduction(float *input, float *output)
     // 提示：你现在的 i 已经定位到了这一段数据的开头。
     // input[i] 是前一半，input[i + blockDim.x] 是这一段的后一半。
 
-    if (i < N)
-        sdata[tid] = input[i] + input[i + blockDim.x];
+    // 先初始化为 0 (以防万一)
+    sdata[tid] = 0.0f; 
+
+    // 只有当第一个数在范围内时才读取
+    if (i < N) {
+        sdata[tid] = input[i];
+    }
+
+    // 只有当第二个数也在范围内时才累加
+    if (i + blockDim.x < N) {
+        sdata[tid] += input[i + blockDim.x];
+    }
 
     __syncthreads();
 
