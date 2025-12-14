@@ -26,19 +26,20 @@ __global__ void improvedSumReduction(float *input, float *output)
     // 3. 更新：每次迭代 stride 右移一位 (除以 2) -> 1024, 512, 256...
 
     // 你的 for 循环写在这里:
-    // for (...)
+    for (int stride = blockDim.x; stride >= 1; stride /= 2)
     {
         // [TODO 3]: 编写优化的 if 判断和加法逻辑
         // 关键点：我们需要活跃线程是连续的 (0 ~ stride-1)
         // 比如 stride=512 时，只有 tid < 512 的线程工作
         // 这样前 16 个 Warp 全力工作，后 16 个 Warp 全力休眠 -> 没有发散！
 
-        // if (...)
+        if (tid < stride)
         {
-            // 执行加法: input[i] += input[i + stride];
+            input[i] += input[i + stride];
         }
 
         // [TODO 4]: 它是树形结构，别忘了同步！
+        __syncthreads();
     }
 
     // 3. 将最终结果写回 output

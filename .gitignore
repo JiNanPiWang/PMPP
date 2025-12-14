@@ -15,3 +15,4 @@ conv_basic
 conv_tiled
 conv_l2_cache
 simple_reduction
+improved_reduction
