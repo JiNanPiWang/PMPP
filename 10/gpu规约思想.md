@@ -12,3 +12,12 @@ stall wait会少很多，另外一个是全局内存访问：
 ![alt text](images/image-5.png)
 ![alt text](images/image-6.png)
 由于改进版线程 ID 是连续的，访问的地址也是连续的，就可以自动使用合并访问，访问次数就少很多。
+
+不过我们到现在还没用到共享内存，我们实际上可以把中间的数组放入共享内存：
+![alt text](images/image-7.png)
+
+这个方法还是限制在单个block了，我们可以用分块的方法，最后再使用atomicadd加上所有的block的结果
+![alt text](images/image-8.png)
+
+我们最终还有一个优化，我们可以固定block数量，然后让一个线程负责多个位置（跨grid）
+![alt text](images/image-9.png)
