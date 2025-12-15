@@ -16,3 +16,6 @@ conv_tiled
 conv_l2_cache
 simple_reduction
 improved_reduction
+improved_reduction_smem
+improved_reduction_block
+improved_reduction_final
